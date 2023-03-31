@@ -118,3 +118,14 @@ pub fn vid_form_to_rgb(ppm_float: &mut Array2<Vec<f64>>) {
     }
 
 }
+
+pub fn array2rgb_to_rgbimg(ppm_src: &Array2<Rgb>, denom: u16) -> RgbImage {
+
+    let rgb = RgbImage {
+        width: ppm_src.width as u32, 
+        height: ppm_src.height as u32,
+        denominator: denom,
+        pixels: ppm_src.data.clone(),
+    };
+    rgb
+}
