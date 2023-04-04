@@ -127,9 +127,9 @@ dependencies = [
 
 [[package]]
 name = "csc411_rpegio"
-version = "0.3.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf742d0e9b9bef2963d469186611d0edce95cc8e3b5d06d746a8e87bc88001df"
+checksum = "c3f68892c1d3fd172eb8d3f2c75b6b57cdcd54c940b383a3e6779f9970044f6b"
 
 [[package]]
 name = "deflate"

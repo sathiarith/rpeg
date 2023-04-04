@@ -25,14 +25,14 @@ fn main() {
     // }
 
     //write out filename to output folder
-    let ppm_crop: Array2<Rgb> = crop(&ppm);
-    let mut ppm_float: Array2<Vec<f64>> = rgb_int_to_float(&ppm_crop, ppm.denominator);
+    let ppm_crop: Array2<Rgb> = trim(&ppm);
+    let ppm_float: Array2<ImgRgbasfloat> = rgb_int_to_float(&ppm_crop, ppm.denominator);
     //print_ppm_as_rgb_array2(&ppm_crop);
     //print_ppm_as_float_array2(&ppm_float);
     //print_ppm_as_rgb_array2(&rgb_float_to_int(&ppm_float, ppm.denominator));
     // convert ppm_float to video format
-    rgb_to_vid_form(&mut ppm_float);
-    vid_form_to_rgb(&mut ppm_float);
+    let ppm_vid_form = rgb_float_to_vid_form(&ppm_float);
+    let ppm_rgb_float = vid_form_to_rgb_float(&ppm_vid_form);
     let ppm_fcrop = rgb_float_to_int(&ppm_float, ppm.denominator);
     // make new rgbimage with new pixels
 
