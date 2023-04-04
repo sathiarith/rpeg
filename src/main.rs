@@ -34,7 +34,7 @@ fn main() {
     let ppm_vid_form = rgb_float_to_vid_form(&ppm_float);
     let ppm_rgb_float = vid_form_to_rgb_float(&ppm_vid_form);
     let ppm_fcrop = rgb_float_to_int(&ppm_float, ppm.denominator);
-    // make new rgbimage with new pixels
+    let ppm_discrete_cos_form = vid_form_to_cos_transform(&ppm_vid_form);
 
     let ppm2 = array2rgb_to_rgbimg(&ppm_fcrop, ppm.denominator);
     

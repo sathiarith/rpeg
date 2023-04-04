@@ -70,7 +70,7 @@ mod tests {
             assert_eq!(pix_vid.pr, 0.5 * pix_float.red - 0.418688 * pix_float.green - 0.081312 * pix_float.blue);
         }
     }
-
+// float approx crate
     #[test]
     fn vid_form_to_rgb_float_then_compare_old_vs_new_floats() {
         let filename = "./src/ppm/sample_640×426.ppm";
@@ -85,4 +85,16 @@ mod tests {
             assert_eq!(pix_vid_to_float.blue, pix_float.blue);
         }
     }
+
+    // #[test]
+    // fn vid_form_to_cos_transform_t() {
+    //     let filename = "./src/ppm/sample_640×426.ppm";
+    //     let ppm = RgbImage::read(Some(filename)).unwrap();
+    //     let ppm_trime: Array2<Rgb> = trime(&ppm);
+    //     let ppm_float: Array2<ImageRgbasfloat> = rgb_int_to_float(&ppm_trim, ppm.denominator);
+    //     let ppm_vid_form = rgb_float_to_vid_form(&ppm_float);
+    //     let ppm_vid_form_to_cos_form = vid_form_to_cos_transform(&ppm_vid_form);
+    //     for 
+
+    // }
 }

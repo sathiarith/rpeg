@@ -18,6 +18,32 @@ pub struct ImgVidForm {
     pub pr: f64,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct Quartet {
+    pub y1: f64,
+    pub y2: f64,
+    pub y3: f64,
+    pub y4: f64,
+    pub pb1: f64,
+    pub pr1: f64,
+    pub pb2: f64,
+    pub pr2: f64,
+    pub pb3: f64,
+    pub pr3: f64,
+    pub pb4: f64,
+    pub pr4: f64,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ImgCosForm {
+    pub a: f64,
+    pub b: f64,
+    pub c: f64,
+    pub d: f64,
+    pub avg_pb: f64,
+    pub avg_pr: f64,
+}
+
 
 /// It takes an image, crops it to be even in width and height, and returns the cropped image
 /// 
@@ -42,16 +68,16 @@ pub fn trim(src: &RgbImage) -> Array2<Rgb> {
 
     let mut dest = Array2::new(crop_width as usize, crop_height as usize, Rgb { red: 0, green: 0, blue: 0 });
     // print width height of src
-    println!("Width: {}, Height: {}", src.width, src.height);
+    // println!("Width: {}, Height: {}", src.width, src.height);
     // print width height of dest
-    println!("DWidth: {}, DHeight: {}", dest.width, dest.height);
+    // println!("DWidth: {}, DHeight: {}", dest.width, dest.height);
     let dest_height = dest.height;
     let dest_width = dest.width;
-    println!("Length of data: {}", dest.data.len());
+    // println!("Length of data: {}", dest.data.len());
     for (i, dest_pixel) in dest.iter_row_major_mut().enumerate() {
         let row = i / dest_width;
         let col = i % dest_width;
-        println!("Index: {}, Row: {}, Col: {}", row*dest_width+col, row, col);
+        //println!("Index: {}, Row: {}, Col: {}", row*dest_width+col, row, col);
         *dest_pixel = src.pixels[row * dest_width + col].clone();
     }
     dest
@@ -236,8 +262,15 @@ pub fn array2rgb_to_rgbimg(ppm_src: &Array2<Rgb>, denom: u16) -> RgbImage {
     rgb
 }
 
-pub fn vid_form_to_cos_transform(ppm_video_float: &Array2<Vec<f64>>) -> Array2<Vec<f64>> {
-    let mut ppm_cos_transform = Array2::new(ppm_video_float.width as usize, ppm_video_float.height as usize, Vec::new());
+pub fn vid_form_to_cos_transform(ppm_video_float: &Array2<ImgVidForm>) -> Array2<ImgCosForm> {
+    let mut ppm_cos_transform = Array2::new(ppm_video_float.width as usize, ppm_video_float.height as usize, 
+        ImgCosForm { 
+            a: 0.0, 
+            b: 0.0, 
+            c: 0.0, 
+            d: 0.0, 
+            avg_pb: 0.0, 
+            avg_pr: 0.0 });
     // cosine transform
     let width = ppm_video_float.width;
     let height = ppm_video_float.height;
@@ -249,22 +282,45 @@ pub fn vid_form_to_cos_transform(ppm_video_float: &Array2<Vec<f64>>) -> Array2<V
     for row_start in (0..height).step_by(2) {
         for col_start in (0..width).step_by(2) {
             
-            let mut ppm_src_ul = &vec![]; // upper left pixel
-            let mut ppm_src_ur = &vec![]; // upper right pixel
-            let mut ppm_src_ll = &vec![]; // lower left pixel
-            let mut ppm_src_lr = &vec![]; // lower right pixel
+            let mut block_2by2 = Quartet {
+                y1: 0.0,
+                y2: 0.0,
+                y3: 0.0,
+                y4: 0.0,
+                pb1: 0.0,
+                pr1: 0.0,
+                pb2: 0.0,
+                pr2: 0.0,
+                pb3: 0.0,
+                pr3: 0.0,
+                pb4: 0.0,
+                pr4: 0.0,
+            }; 
             // Row_offset and col_offset loops indices of the subgrid.
             // Populate the values of the subgrid
             for row_offset in 0..2 {
                 for col_offset in 0..2 {
+                    // Retrieve y, pb, pr values from ppm_video_float
                     if row_offset == 0 && col_offset == 0 {
-                        ppm_src_ul = ppm_video_float.get(row_start + row_offset, col_start + col_offset).unwrap();
+                        let ppm_src_ul = ppm_video_float.get(row_start + row_offset, col_start + col_offset).unwrap();
+                        block_2by2.y1 = ppm_src_ul.y;
+                        block_2by2.pb1 = ppm_src_ul.pb;
+                        block_2by2.pr1 = ppm_src_ul.pr;
                     } else if row_offset == 0 && col_offset == 1 {
-                        ppm_src_ur = ppm_video_float.get(row_start + row_offset, col_start + col_offset).unwrap();
+                        let ppm_src_ur = ppm_video_float.get(row_start + row_offset, col_start + col_offset).unwrap();
+                        block_2by2.y2 = ppm_src_ur.y;
+                        block_2by2.pb2 = ppm_src_ur.pb;
+                        block_2by2.pr2 = ppm_src_ur.pr;
                     } else if row_offset == 1 && col_offset == 0 {
-                        ppm_src_ll = ppm_video_float.get(row_start + row_offset, col_start + col_offset).unwrap();
+                        let ppm_src_ll = ppm_video_float.get(row_start + row_offset, col_start + col_offset).unwrap();
+                        block_2by2.y3 = ppm_src_ll.y;
+                        block_2by2.pb3 = ppm_src_ll.pb;
+                        block_2by2.pr3 = ppm_src_ll.pr;
                     } else if row_offset == 1 && col_offset == 1 {
-                        ppm_src_lr = ppm_video_float.get(row_start + row_offset, col_start + col_offset).unwrap();
+                        let ppm_src_lr = ppm_video_float.get(row_start + row_offset, col_start + col_offset).unwrap();
+                        block_2by2.y4 = ppm_src_lr.y;
+                        block_2by2.pb4 = ppm_src_lr.pb;
+                        block_2by2.pr4 = ppm_src_lr.pr;
                     } 
                 }
             }
@@ -273,26 +329,28 @@ pub fn vid_form_to_cos_transform(ppm_video_float: &Array2<Vec<f64>>) -> Array2<V
             for row_offset in 0..2 {
                 for col_offset in 0..2 {
                     let ppm_dest = ppm_cos_transform.get_mut(row_start + row_offset, col_start + col_offset).unwrap();
-                    // a = (Y4 + Y3 + Y2 + Y1)/4.0 = (lr + ll + ur + ul)/4.0
-                    // b = (Y4 + Y3 − Y2 − Y1)/4.0 = (lr + ll - ur - ul)/4.0
-                    // c = (Y4 − Y3 + Y2 − Y1)/4.0 = (lr - ll + ur - ul)/4.0
-                    // d = (Y4 − Y3 − Y2 + Y1)/4.0 = (lr - ll - ur + ul)/4.0
+                    // a = (Y4 + Y3 + Y2 + Y1)/4.0
+                    // b = (Y4 + Y3 − Y2 − Y1)/4.0
+                    // c = (Y4 − Y3 + Y2 − Y1)/4.0
+                    // d = (Y4 − Y3 − Y2 + Y1)/4.0
                     // Y values stored in vec[0]
-                    let a = (ppm_src_lr[0] + ppm_src_ll[0] + ppm_src_ur[0] + ppm_src_ul[0])/4.0;
-                    let b = (ppm_src_lr[0] + ppm_src_ll[0] - ppm_src_ur[0] - ppm_src_ul[0])/4.0;
-                    let c = (ppm_src_lr[0] - ppm_src_ll[0] + ppm_src_ur[0] - ppm_src_ul[0])/4.0;
-                    let d = (ppm_src_lr[0] - ppm_src_ll[0] - ppm_src_ur[0] + ppm_src_ul[0])/4.0;
+                    let a = (block_2by2.y4 + block_2by2.y3 + block_2by2.y2 + block_2by2.y1)/4.0;
+                    let b = (block_2by2.y4 + block_2by2.y3 - block_2by2.y2 - block_2by2.y1)/4.0;
+                    let c = (block_2by2.y4 - block_2by2.y3 + block_2by2.y2 - block_2by2.y1)/4.0;
+                    let d = (block_2by2.y4 - block_2by2.y3 - block_2by2.y2 + block_2by2.y1)/4.0;
                     // Pb values stored in vec[1]
-                    let avg_pb = (ppm_src_lr[1] + ppm_src_ll[1] + ppm_src_ur[1] + ppm_src_ul[1])/4.0;
+                    let avg_pb = (block_2by2.pb1 + block_2by2.pb2 + block_2by2.pb3 + block_2by2.pb4)/4.0;
                     // Pr values stored in vec[2]
-                    let avg_pr = (ppm_src_lr[2] + ppm_src_ll[2] + ppm_src_ur[2] + ppm_src_ul[2])/4.0;
+                    let avg_pr = (block_2by2.pb1 + block_2by2.pb2 + block_2by2.pb3 + block_2by2.pb4)/4.0;
 
-                    ppm_dest.push(a);
-                    ppm_dest.push(b);
-                    ppm_dest.push(c);
-                    ppm_dest.push(d);
-                    ppm_dest.push(avg_pb);
-                    ppm_dest.push(avg_pr);
+                    *ppm_dest = ImgCosForm {
+                        a: a,
+                        b: b,
+                        c: c,
+                        d: d,
+                        avg_pb: avg_pb,
+                        avg_pr: avg_pr,
+                    };
                 }
             }
             
@@ -301,3 +359,12 @@ pub fn vid_form_to_cos_transform(ppm_video_float: &Array2<Vec<f64>>) -> Array2<V
 
     ppm_cos_transform
 }
+
+// pub fn cos_transform_to_vid_form(ppm_cos_form: &Array2<ImgCosForm>) -> Array2<ImgVidForm> {
+//     let mut ppm_vid_form = Array2::new(ppm_video_float.width as usize, ppm_video_float.height as usize, 
+//         ImgVidForm {
+//             y: 0.0,
+//             pb: 0.0,
+//             pr: 0.0,
+//         });
+// }
