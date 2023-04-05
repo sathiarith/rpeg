@@ -9,8 +9,8 @@ use csc411_image::{Rgb, RgbImage, Read, Write};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let argnum = args.len();
-    //assert!(argnum == 2 || argnum == 3);
+    let arg_num = args.len();
+    //assert!(arg_num == 2 || arg_num == 3);
     let filename = args.iter().nth(2).unwrap();
     let output = args.iter().nth(3).unwrap();
     //read in filename
@@ -32,11 +32,13 @@ fn main() {
     //print_ppm_as_rgb_array2(&rgb_float_to_int(&ppm_float, ppm.denominator));
     // convert ppm_float to video format
     let ppm_vid_form = rgb_float_to_vid_form(&ppm_float);
-    let ppm_rgb_float = vid_form_to_rgb_float(&ppm_vid_form);
-    let ppm_fcrop = rgb_float_to_int(&ppm_float, ppm.denominator);
     let ppm_discrete_cos_form = vid_form_to_cos_transform(&ppm_vid_form);
+    let ppm_vid_form_decomp = cos_transform_to_vid_form(&ppm_discrete_cos_form);
+    let ppm_rgb_float_decomp = vid_form_to_rgb_float(&ppm_vid_form_decomp);
+    let ppm_rgb_int_decomp = rgb_float_to_int(&ppm_rgb_float_decomp, ppm.denominator);
+    //let ppm_quantized = cos_form_to_quantize(&ppm_discrete_cos_form);
 
-    let ppm2 = array2rgb_to_rgbimg(&ppm_fcrop, ppm.denominator);
+    let ppm2 = array2rgb_to_rgbimg(&ppm_rgb_int_decomp, ppm.denominator);
     
     let output_path: &str = output;
     ppm2.write(Some(output_path)).unwrap();

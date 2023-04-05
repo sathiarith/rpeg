@@ -1,6 +1,7 @@
 extern crate array2;
 use array2::Array2;
 use csc411_image::{Rgb, RgbImage};
+use csc411_arith::{chroma_of_index, index_of_chroma};
 
 // Struct for pixels
 #[derive(Debug, Clone, Copy)]
@@ -42,6 +43,16 @@ pub struct ImgCosForm {
     pub d: f64,
     pub avg_pb: f64,
     pub avg_pr: f64,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ImgQuantizeForm {
+    pub a: u64,
+    pub b: i64,
+    pub c: i64,
+    pub d: i64,
+    pub avg_pb: i64,
+    pub avg_pr: i64,
 }
 
 
@@ -262,7 +273,26 @@ pub fn array2rgb_to_rgbimg(ppm_src: &Array2<Rgb>, denom: u16) -> RgbImage {
     rgb
 }
 
+// helper functions for quantization
+static COSINE_FORCE: f32 = 0.3;
+fn scale_sat(x: f32, max_magnitude: f32) -> f32 {
+    if x > max_magnitude {
+        max_magnitude
+    } else if x < -max_magnitude {
+        -max_magnitude
+    } else {
+        x/max_magnitude
+    }
+}
+
+fn smax(bits: i32) -> i32 {
+    return (1 << bits) / 2 - 1;
+}
+
 pub fn vid_form_to_cos_transform(ppm_video_float: &Array2<ImgVidForm>) -> Array2<ImgCosForm> {
+    
+    //let mut index = (scale_sat(b, COSINE_FORCE) * smax(5) as f32).floor();
+
     let mut ppm_cos_transform = Array2::new(ppm_video_float.width as usize, ppm_video_float.height as usize, 
         ImgCosForm { 
             a: 0.0, 
@@ -277,7 +307,7 @@ pub fn vid_form_to_cos_transform(ppm_video_float: &Array2<ImgVidForm>) -> Array2
 
     // iterate through ppm_cost_transform to create a, b, c, d , avg_Pb, and avg_Pr values
     // based on the 2x2 block of pixels from ppm_video_float
-     // Check sub-grids
+    // Check sub-grids
     // Row_start and col_start loops are the coordinates of the top-left corner of the subgrid.
     for row_start in (0..height).step_by(2) {
         for col_start in (0..width).step_by(2) {
@@ -328,20 +358,20 @@ pub fn vid_form_to_cos_transform(ppm_video_float: &Array2<ImgVidForm>) -> Array2
             // Get the destination pixel
             for row_offset in 0..2 {
                 for col_offset in 0..2 {
-                    let ppm_dest = ppm_cos_transform.get_mut(row_start + row_offset, col_start + col_offset).unwrap();
+                    let ppm_dest: &mut ImgCosForm = ppm_cos_transform.get_mut(row_start + row_offset, col_start + col_offset).unwrap();
                     // a = (Y4 + Y3 + Y2 + Y1)/4.0
                     // b = (Y4 + Y3 − Y2 − Y1)/4.0
                     // c = (Y4 − Y3 + Y2 − Y1)/4.0
                     // d = (Y4 − Y3 − Y2 + Y1)/4.0
-                    // Y values stored in vec[0]
+                    
                     let a = (block_2by2.y4 + block_2by2.y3 + block_2by2.y2 + block_2by2.y1)/4.0;
                     let b = (block_2by2.y4 + block_2by2.y3 - block_2by2.y2 - block_2by2.y1)/4.0;
                     let c = (block_2by2.y4 - block_2by2.y3 + block_2by2.y2 - block_2by2.y1)/4.0;
                     let d = (block_2by2.y4 - block_2by2.y3 - block_2by2.y2 + block_2by2.y1)/4.0;
-                    // Pb values stored in vec[1]
+                    
                     let avg_pb = (block_2by2.pb1 + block_2by2.pb2 + block_2by2.pb3 + block_2by2.pb4)/4.0;
-                    // Pr values stored in vec[2]
-                    let avg_pr = (block_2by2.pb1 + block_2by2.pb2 + block_2by2.pb3 + block_2by2.pb4)/4.0;
+                    
+                    let avg_pr = (block_2by2.pr1 + block_2by2.pr2 + block_2by2.pr3 + block_2by2.pr4)/4.0;
 
                     *ppm_dest = ImgCosForm {
                         a: a,
@@ -360,11 +390,99 @@ pub fn vid_form_to_cos_transform(ppm_video_float: &Array2<ImgVidForm>) -> Array2
     ppm_cos_transform
 }
 
-// pub fn cos_transform_to_vid_form(ppm_cos_form: &Array2<ImgCosForm>) -> Array2<ImgVidForm> {
-//     let mut ppm_vid_form = Array2::new(ppm_video_float.width as usize, ppm_video_float.height as usize, 
-//         ImgVidForm {
-//             y: 0.0,
-//             pb: 0.0,
-//             pr: 0.0,
-//         });
-// }
+pub fn cos_transform_to_vid_form(ppm_cos_form: &Array2<ImgCosForm>) -> Array2<ImgVidForm> {
+    let mut ppm_vid_form = Array2::new(ppm_cos_form.width as usize, ppm_cos_form.height as usize, 
+        ImgVidForm {
+            y: 0.0,
+            pb: 0.0,
+            pr: 0.0,});
+    
+    let width = ppm_cos_form.width;
+    let height = ppm_cos_form.height;
+
+    for row_start in (0..height).step_by(2) {
+        for col_start in (0..width).step_by(2) {
+            
+            // Row_offset and col_offset loops indices of the subgrid.
+            // Populate the values of the subgrid
+            for row_offset in 0..2 {
+                for col_offset in 0..2 {
+                    let ppm_dest = ppm_vid_form.get_mut(row_start + row_offset, col_start + col_offset).unwrap();
+                    // Retrieve y, pb, pr values from ppm_cos_form
+                    // Y1 = a − b − c + d
+                    // Y2 = a − b + c − d
+                    // Y3 = a + b − c − d
+                    // Y4 = a + b + c + d
+                    if row_offset == 0 && col_offset == 0 {
+                        let ppm_src_ul = ppm_cos_form.get(row_start + row_offset, col_start + col_offset).unwrap();
+                        
+                        *ppm_dest = ImgVidForm {
+                            y: ppm_src_ul.a - ppm_src_ul.b - ppm_src_ul.c + ppm_src_ul.d,
+                            pb: ppm_src_ul.avg_pb,
+                            pr: ppm_src_ul.avg_pr,
+                        };
+                    } else if row_offset == 0 && col_offset == 1 {
+                        let ppm_src_ur = ppm_cos_form.get(row_start + row_offset, col_start + col_offset).unwrap();
+                        
+                        *ppm_dest = ImgVidForm {
+                            y: ppm_src_ur.a - ppm_src_ur.b + ppm_src_ur.c - ppm_src_ur.d,
+                            pb: ppm_src_ur.avg_pb,
+                            pr: ppm_src_ur.avg_pr,
+                        };
+                    } else if row_offset == 1 && col_offset == 0 {
+                        let ppm_src_ll = ppm_cos_form.get(row_start + row_offset, col_start + col_offset).unwrap();
+                        
+                        *ppm_dest = ImgVidForm {
+                            y: ppm_src_ll.a + ppm_src_ll.b - ppm_src_ll.c - ppm_src_ll.d,
+                            pb: ppm_src_ll.avg_pb,
+                            pr: ppm_src_ll.avg_pr,
+                        };
+                    } else if row_offset == 1 && col_offset == 1 {
+                        let ppm_src_lr = ppm_cos_form.get(row_start + row_offset, col_start + col_offset).unwrap();
+                        
+                        *ppm_dest = ImgVidForm {
+                            y: ppm_src_lr.a + ppm_src_lr.b + ppm_src_lr.c + ppm_src_lr.d,
+                            pb: ppm_src_lr.avg_pb,
+                            pr: ppm_src_lr.avg_pr,
+                        };
+                    } else {
+                        unreachable!();
+                    }
+                }
+            }
+            
+        }
+    }
+    ppm_vid_form
+}
+
+pub fn cos_form_to_quantize(ppm_cos_form: &Array2<ImgCosForm>) -> Array2<ImgQuantizeForm> {
+    let mut ppm_quantized = Array2::new(ppm_cos_form.width as usize, ppm_cos_form.height as usize, 
+        ImgQuantizeForm {
+            a: 0,
+            b: 0,
+            c: 0,
+            d: 0,
+            avg_pb: 0,
+            avg_pr: 0,});
+    
+        for (pix_quantize, pix_cos) in ppm_quantized.iter_row_major_mut().zip(ppm_cos_form.iter_row_major()) {
+            
+            let index_b = (scale_sat(pix_cos.b as f32, COSINE_FORCE) * smax(5) as f32).round();
+            let index_c = (scale_sat(pix_cos.c as f32, COSINE_FORCE) * smax(5) as f32).round();
+            let index_d = (scale_sat(pix_cos.d as f32, COSINE_FORCE) * smax(5) as f32).round();
+            let index_avg_pb = index_of_chroma(pix_cos.avg_pb as f32);
+            let index_avg_pr = index_of_chroma(pix_cos.avg_pr as f32);
+            *pix_quantize = ImgQuantizeForm {
+                a: (pix_cos.a * smax(9) as f64).round() as u64,
+                b: index_b as i64,
+                c: index_c as i64,
+                d: index_d as i64,
+                avg_pb: index_avg_pb as i64,
+                avg_pr: index_avg_pr as i64,
+            };
+        }
+
+    ppm_quantized
+}
+

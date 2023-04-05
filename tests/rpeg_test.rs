@@ -86,15 +86,21 @@ mod tests {
         }
     }
 
+    // Quantization needs to happen. This is a misguiding test. Might be salvagable.
     // #[test]
-    // fn vid_form_to_cos_transform_t() {
-    //     let filename = "./src/ppm/sample_640×426.ppm";
+    // fn cos_form_to_vid_then_compare_old_vs_new_vid() {
+    //     let filename = "./src/ppm/sample_1280×853.ppm";
     //     let ppm = RgbImage::read(Some(filename)).unwrap();
-    //     let ppm_trime: Array2<Rgb> = trime(&ppm);
-    //     let ppm_float: Array2<ImageRgbasfloat> = rgb_int_to_float(&ppm_trim, ppm.denominator);
+    //     let ppm_trim: Array2<Rgb> = trim(&ppm);
+    //     let ppm_float: Array2<ImgRgbasfloat> = rgb_int_to_float(&ppm_trim, ppm.denominator);
     //     let ppm_vid_form = rgb_float_to_vid_form(&ppm_float);
     //     let ppm_vid_form_to_cos_form = vid_form_to_cos_transform(&ppm_vid_form);
-    //     for 
+    //     let ppm_cos_form_to_vid_form = cos_transform_to_vid_form(&ppm_vid_form_to_cos_form);
+    //     for (pix_cos_to_vid, pix_vid) in ppm_cos_form_to_vid_form.iter_row_major().zip(ppm_vid_form.iter_row_major()) {
+    //         assert_eq!(pix_cos_to_vid.y, pix_vid.y);
+    //         //assert_eq!(pix_cos_to_vid.pb, pix_vid.pb);
+    //         //assert_eq!(pix_cos_to_vid.pr, pix_vid.pr);
+    //     }
 
     // }
 }
