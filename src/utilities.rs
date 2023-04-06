@@ -2,6 +2,7 @@ extern crate array2;
 use array2::Array2;
 use csc411_image::{Rgb, RgbImage};
 use csc411_arith::{chroma_of_index, index_of_chroma};
+use std::process::exit;
 
 // Struct for pixels
 #[derive(Debug, Clone, Copy)]
@@ -285,6 +286,18 @@ fn scale_sat(x: f32, max_magnitude: f32) -> f32 {
     }
 }
 
+fn reverse_scale_sat(x: f32, max_magnitude: f32) -> f32 {
+    if x > 1.0 {
+        eprintln!("Error: value {} is greater than 1.0 indicating faulty compression", x);
+        exit(1);
+    } else if x < -1.0 {
+        eprintln!("Error: value {} is less than -1.0 indicating faulty compression", x);
+        exit(1);
+    }
+
+    x * max_magnitude
+}
+
 fn smax(bits: i32) -> i32 {
     return (1 << bits) / 2 - 1;
 }
@@ -484,5 +497,9 @@ pub fn cos_form_to_quantize(ppm_cos_form: &Array2<ImgCosForm>) -> Array2<ImgQuan
         }
 
     ppm_quantized
+}
+
+pub fn quantize_to_cosform(ppm_quantized: &Array2<ImgQuantizeForm>) -> Array2<ImgCosForm> {
+    
 }
 

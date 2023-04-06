@@ -25,12 +25,8 @@ fn main() {
     // }
 
     //write out filename to output folder
-    let ppm_crop: Array2<Rgb> = trim(&ppm);
-    let ppm_float: Array2<ImgRgbasfloat> = rgb_int_to_float(&ppm_crop, ppm.denominator);
-    //print_ppm_as_rgb_array2(&ppm_crop);
-    //print_ppm_as_float_array2(&ppm_float);
-    //print_ppm_as_rgb_array2(&rgb_float_to_int(&ppm_float, ppm.denominator));
-    // convert ppm_float to video format
+    let ppm_trim: Array2<Rgb> = trim(&ppm);
+    let ppm_float: Array2<ImgRgbasfloat> = rgb_int_to_float(&ppm_trim, ppm.denominator);
     let ppm_vid_form = rgb_float_to_vid_form(&ppm_float);
     let ppm_discrete_cos_form = vid_form_to_cos_transform(&ppm_vid_form);
     let ppm_vid_form_decomp = cos_transform_to_vid_form(&ppm_discrete_cos_form);
