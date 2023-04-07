@@ -282,7 +282,7 @@ fn scale_sat(x: f32, max_magnitude: f32) -> f32 {
     } else if x < -max_magnitude {
         -max_magnitude
     } else {
-        x/max_magnitude
+        x / max_magnitude
     }
 }
 
@@ -482,11 +482,21 @@ pub fn cos_form_to_quantize(ppm_cos_form: &Array2<ImgCosForm>) -> Array2<ImgQuan
         for (pix_quantize, pix_cos) in ppm_quantized.iter_row_major_mut().zip(ppm_cos_form.iter_row_major()) {
             
             let index_b = (scale_sat(pix_cos.b as f32, COSINE_FORCE) * smax(5) as f32).round();
+            /* scale_sat is some number between -.5 to .5 and we are straining it to at max -.3 or .3. We then force this float number to be represented
+            as 5-bits (i32). Within smax, we reserve the left-most bit for the negative value. Therefore the actual bit representation is
+            max negative number and some 4 bit number (e.g., 4 1 bits = 15 vs. 4 0 bits; (2^bits)-1). The range would be -16 + 15 = -1 or -16 + 0 = -16. This
+            is for the half that the entire 5 signed bits has left-most value of 1. When the left-most bit is 0, then the range is 0 + 15 = 15 to
+            0 + 0 = 0. In total, -16 -> -1 -> 0 -> 15. Given pix_cos.b = .27 into scale_sat, returning .9; .9 * 15 (i.e., 5 bits), 
+            transformation is 13.5 rounded up is 14. So the bit represenation (not pix value) is 14 or 0b01110 */
             let index_c = (scale_sat(pix_cos.c as f32, COSINE_FORCE) * smax(5) as f32).round();
+            /* Given pix_cos.c = -0.27 into scale_sat, returning -0.9; -0.9 * 15 = -13.5 rounded down is -14. 
+            So the bit represenation (not pix value) is -14 or 0b10010 */
             let index_d = (scale_sat(pix_cos.d as f32, COSINE_FORCE) * smax(5) as f32).round();
             let index_avg_pb = index_of_chroma(pix_cos.avg_pb as f32);
             let index_avg_pr = index_of_chroma(pix_cos.avg_pr as f32);
             *pix_quantize = ImgQuantizeForm {
+                /* Given pix_cos.a = .8 (keep in mind, a is unsigned), we force the float into 9-bits ((2^9)-1) = 511). The result is
+                .8 * 511 = 408.8 and when we round up, 409 or 110011001. */
                 a: (pix_cos.a * smax(9) as f64).round() as u64,
                 b: index_b as i64,
                 c: index_c as i64,
@@ -499,7 +509,39 @@ pub fn cos_form_to_quantize(ppm_cos_form: &Array2<ImgCosForm>) -> Array2<ImgQuan
     ppm_quantized
 }
 
-pub fn quantize_to_cosform(ppm_quantized: &Array2<ImgQuantizeForm>) -> Array2<ImgCosForm> {
+pub fn quantize_to_cos_form(ppm_quantized: &Array2<ImgQuantizeForm>) -> Array2<ImgCosForm> {
+    let mut ppm_cos_form = Array2::new(ppm_quantized.width as usize, ppm_quantized.height as usize, 
+        ImgCosForm {
+            a: 0.0,
+            b: 0.0,
+            c: 0.0,
+            d: 0.0,
+            avg_pb: 0.0,
+            avg_pr: 0.0,});
+    
+        for (pix_cos, pix_quantize) in ppm_cos_form.iter_row_major_mut().zip(ppm_quantized.iter_row_major()) {
+            
+            // If scale_sat_b * 15 = pix_quantize.b then:
+            // scale_sat_b = pix_quantize.b / 15
+            let scale_sat_b = pix_quantize.b / smax(5) as i64;
+            let scale_sat_c = pix_quantize.c / smax(5) as i64;
+            let scale_sat_d = pix_quantize.d / smax(5) as i64;
+            // scale_b * .3 = pix_cos.b
+            let b = reverse_scale_sat(scale_sat_b as f32, COSINE_FORCE) as f64;
+            let c = reverse_scale_sat(scale_sat_c as f32, COSINE_FORCE) as f64;
+            let d = reverse_scale_sat(scale_sat_d as f32, COSINE_FORCE) as f64;
+            
+            *pix_cos = ImgCosForm {
+                a: (pix_quantize.a / smax(9) as u64) as f64,
+                b: b,
+                c: c,
+                d: d,
+                avg_pb: chroma_of_index(pix_quantize.avg_pb as usize) as f64,
+                avg_pr: chroma_of_index(pix_quantize.avg_pr as usize) as f64,
+            };
+        }
+
+    ppm_cos_form
     
 }
 

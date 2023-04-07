@@ -29,7 +29,9 @@ fn main() {
     let ppm_float: Array2<ImgRgbasfloat> = rgb_int_to_float(&ppm_trim, ppm.denominator);
     let ppm_vid_form = rgb_float_to_vid_form(&ppm_float);
     let ppm_discrete_cos_form = vid_form_to_cos_transform(&ppm_vid_form);
-    let ppm_vid_form_decomp = cos_transform_to_vid_form(&ppm_discrete_cos_form);
+    let ppm_cos_form_to_quantized = cos_form_to_quantize(&ppm_discrete_cos_form);
+    let ppm_quantized_to_cos_form_decomp = quantize_to_cos_form(&ppm_cos_form_to_quantized);
+    let ppm_vid_form_decomp = cos_transform_to_vid_form(&ppm_quantized_to_cos_form_decomp);
     let ppm_rgb_float_decomp = vid_form_to_rgb_float(&ppm_vid_form_decomp);
     let ppm_rgb_int_decomp = rgb_float_to_int(&ppm_rgb_float_decomp, ppm.denominator);
     //let ppm_quantized = cos_form_to_quantize(&ppm_discrete_cos_form);
