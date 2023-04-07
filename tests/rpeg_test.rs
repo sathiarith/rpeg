@@ -3,13 +3,13 @@ mod tests {
     use rpeg::utilities::*;
     extern crate array2;
     use array2::Array2;
-    use csc411_image::{Rgb, RgbImage, Read, Write};
+    use csc411_image::{Rgb, RgbImage, Read};
 
     #[test]
     fn trim_t() {
         // Assert that the width and height becomes even
         // file 1
-        let filename = "./src/ppm/sample_1280×853.ppm";
+        let filename = "./src/ppm/sample_1280by853.ppm";
         let ppm1 = RgbImage::read(Some(filename)).unwrap();
         assert_eq!(ppm1.width, 1280);
         assert_eq!(ppm1.height, 853);
@@ -19,7 +19,7 @@ mod tests {
         assert_eq!(trim1_to_output.height, 852);
 
         // file 2
-        let filename = "./src/ppm/fennec_1731x951.ppm";
+        let filename = "./src/ppm/fennec_1731by951.ppm";
         let ppm2 = RgbImage::read(Some(filename)).unwrap();
         assert_eq!(ppm2.width, 1731);
         assert_eq!(ppm2.height, 951);
@@ -31,7 +31,7 @@ mod tests {
 
     #[test]
     fn rgb_int_to_float_t() {
-        let filename = "./src/ppm/sample_640×426.ppm";
+        let filename = "./src/ppm/sample_640by426.ppm";
         let ppm = RgbImage::read(Some(filename)).unwrap();
         let ppm_trim: Array2<Rgb> = trim(&ppm);
         let ppm_float: Array2<ImgRgbasfloat> = rgb_int_to_float(&ppm_trim, ppm.denominator);
@@ -44,7 +44,7 @@ mod tests {
     }
     #[test]
     fn rgb_float_to_int_then_compare_old_vs_new_ints() {
-        let filename = "./src/ppm/sample_640×426.ppm";
+        let filename = "./src/ppm/sample_640by426.ppm";
         let ppm = RgbImage::read(Some(filename)).unwrap();
         let ppm_trim: Array2<Rgb> = trim(&ppm);
         let ppm_float: Array2<ImgRgbasfloat> = rgb_int_to_float(&ppm_trim, ppm.denominator);
@@ -59,7 +59,7 @@ mod tests {
 
     #[test]
     fn rgb_float_to_vid_form_t() {
-        let filename = "./src/ppm/sample_640×426.ppm";
+        let filename = "./src/ppm/sample_640by426.ppm";
         let ppm = RgbImage::read(Some(filename)).unwrap();
         let ppm_trim: Array2<Rgb> = trim(&ppm);
         let ppm_float: Array2<ImgRgbasfloat> = rgb_int_to_float(&ppm_trim, ppm.denominator);
@@ -73,7 +73,7 @@ mod tests {
 // float approx crate
     #[test]
     fn vid_form_to_rgb_float_then_compare_old_vs_new_floats() {
-        let filename = "./src/ppm/sample_640×426.ppm";
+        let filename = "./src/ppm/sample_640by426.ppm";
         let ppm = RgbImage::read(Some(filename)).unwrap();
         let ppm_trim: Array2<Rgb> = trim(&ppm);
         let ppm_float: Array2<ImgRgbasfloat> = rgb_int_to_float(&ppm_trim, ppm.denominator);
