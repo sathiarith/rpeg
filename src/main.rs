@@ -1,10 +1,7 @@
 use std::env;
 use rpeg::codec::{compress, decompress};
-use rpeg::utilities::*;
 extern crate array2;
 extern crate bitpack;
-use array2::Array2;
-use bitpack::bitpack::*;
 use csc411_image::{Rgb, RgbImage, Read, Write};
 
 
@@ -12,15 +9,14 @@ use csc411_image::{Rgb, RgbImage, Read, Write};
 fn main() {
     let args: Vec<String> = env::args().collect();
     let arg_num = args.len();
-    //assert!(arg_num == 2 || arg_num == 3);
+    assert!(arg_num == 2 || arg_num == 3);
     let filename = args.iter().nth(2).unwrap();
-    let output = args.iter().nth(3).unwrap();
-    // //read in filename
-    // let ppm = RgbImage::read(Some(filename)).unwrap();
+    //let output = args.iter().nth(3).unwrap();
+    
 
     match args[1].as_str() {
         "-c" => compress(Some(filename)),
-        "-d" => decompress(Some(filename)),
+        "-d" => decompress(Some(filename), 255),
         _ => {
             eprintln!("Usage: rpeg -d [filename]\nrpeg -c [filename]")
         }
@@ -37,6 +33,6 @@ fn main() {
     // let ppm_rgb_int_decomp = rgb_float_to_int(&ppm_rgb_float_decomp, ppm.denominator);
     // let ppm2 = array2rgb_to_rgbimg(&ppm_rgb_int_decomp, ppm.denominator);
 
-    let output_path: &str = output;
-    ppm2.write(Some(output_path)).unwrap();
+    //let output_path: &str = output;
+    //ppm2.write(Some(output_path)).unwrap();
 }

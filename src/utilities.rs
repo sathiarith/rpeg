@@ -1,4 +1,5 @@
 extern crate array2;
+use bitpack::bitpack::*;
 use array2::Array2;
 use csc411_image::{Rgb, RgbImage};
 use csc411_arith::{chroma_of_index, index_of_chroma};
@@ -82,7 +83,7 @@ pub fn trim(src: &RgbImage) -> Array2<Rgb> {
     // println!("Width: {}, Height: {}", src.width, src.height);
     // print width height of dest
     // println!("DWidth: {}, DHeight: {}", dest.width, dest.height);
-    let dest_height = dest.height;
+    let _dest_height = dest.height;
     let dest_width = dest.width;
     // println!("Length of data: {}", dest.data.len());
     for (i, dest_pixel) in dest.iter_row_major_mut().enumerate() {
@@ -501,7 +502,7 @@ pub fn cos_form_to_quantize(ppm_cos_form: &Array2<ImgCosForm>) -> Array2<ImgQuan
                 avg_pr: index_avg_pr as i64,
             };
             //print pix_quantize
-            println!("pix_quantize: {:?}", pix_quantize);
+            //println!("pix_quantize: {:?}", pix_quantize);
         }
 
     ppm_quantized
@@ -546,3 +547,74 @@ pub fn quantize_to_cos_form(ppm_quantized: &Array2<ImgQuantizeForm>) -> Array2<I
     
 }
 
+pub fn word_u32_prep(a: u64, b: i64, c: i64, d: i64, pb: u64, pr: u64) -> u32 {
+    let mut word: Option<u64> = Some(0);
+    word = newu(word.unwrap(), 9, 23, a);
+    word = news(word.unwrap(), 5, 18, b);
+    word = news(word.unwrap(), 5, 13, c);
+    word = news(word.unwrap(), 5, 8, d);
+    word = newu(word.unwrap(), 4, 4, pb);
+    word = newu(word.unwrap(), 4, 0, pr);
+
+    return word.unwrap() as u32;
+}
+
+pub fn pack(ppm_quantized: &Array2<ImgQuantizeForm>) -> Vec<u32> {
+    let mut ppm_packed = Vec::new();
+    let width = ppm_quantized.width;
+    let height = ppm_quantized.height;
+
+    for row_start in (0..height).step_by(2) {
+        for col_start in (0..width).step_by(2) {
+            for row_offset in 0..2 {
+                for col_offset in 0..2 {
+                    if col_offset == 0 && row_offset == 0 {
+                        let ppm_src = ppm_quantized.get(row_start + row_offset, col_start + col_offset).unwrap();
+                        let word = word_u32_prep(ppm_src.a, ppm_src.b, ppm_src.c, ppm_src.d, ppm_src.avg_pb as u64, ppm_src.avg_pr as u64);
+                        ppm_packed.push(word);
+                    }
+                }
+            }
+        }
+    }
+
+    ppm_packed
+}
+
+
+pub fn unpack(rpeg_data: &Vec<u32>, ppm_width: usize, ppm_height: usize) -> Array2<ImgQuantizeForm> {
+    let mut ppm_quantized = Array2::new(ppm_width, ppm_height, ImgQuantizeForm {
+        a: 0,
+        b: 0,
+        c: 0,
+        d: 0,
+        avg_pb: 0,
+        avg_pr: 0,
+    });
+    for word in rpeg_data.iter() {
+        let a = getu(*word as u64, 9, 23);
+        let b = gets(*word as u64, 5, 18);
+        let c = gets(*word as u64, 5, 13);
+        let d = gets(*word as u64, 5, 8);
+        let avg_pb = getu(*word as u64, 4, 4);
+        let avg_pr = getu(*word as u64, 4, 0);
+        for row_start in (0..ppm_height).step_by(2) {
+            for col_start in (0..ppm_width).step_by(2) {
+                for row_offset in 0..2 {
+                    for col_offset in 0..2 {
+                        let ppm_dest = ppm_quantized.get_mut(row_start + row_offset, col_start + col_offset).unwrap();
+                        *ppm_dest = ImgQuantizeForm {
+                            a: a,
+                            b: b,
+                            c: c,
+                            d: d,
+                            avg_pb: avg_pb as i64,
+                            avg_pr: avg_pr as i64,
+                        };
+                    }
+                }
+            }
+        }
+    }
+    ppm_quantized
+}

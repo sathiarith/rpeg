@@ -1,0 +1,10 @@
+    // let (bytes, width, height) = csc411_rpegio::input_rpeg_data(Some(filename));
+    // let words = bytes.iter().map(|byte| u32::from_be_bytes(*byte)).collect();
+    // for word in words {
+    //     let a = getu(word, 9, 23);
+    //     let b = gets(word, 5, 18);
+    //     let c = gets(word, 5, 13);
+    //     let d = gets(word, 5, 8);
+    //     let avg_pb = (word, 4, 4);
+    //     let avg_pr = (word, 4, 0);
+    // }
